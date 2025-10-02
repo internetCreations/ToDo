@@ -36,13 +36,14 @@ function renderTable(tasks) {
     tbody.innerHTML = '';
 
     if (tasks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-gray-500">No tasks found. Try refreshing to populate initial data.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No tasks found. Try refreshing to populate initial data.</td></tr>';
         return;
     }
 
     tasks.forEach((todo, index) => {
         const row = document.createElement('tr');
         row.className = index % 2 === 0 ? 'table-row-even hover:bg-indigo-50/50' : 'table-row-odd hover:bg-indigo-50/50';
+
         const createCell = (content, isBadge = false) => {
             const cell = document.createElement('td');
             cell.className = 'py-3 px-4 whitespace-nowrap text-sm text-gray-700';
@@ -56,18 +57,60 @@ function renderTable(tasks) {
             }
             return cell;
         };
+
+        // Populate cells
         row.appendChild(createCell(todo.item));
         row.appendChild(createCell(todo.status, true));
         row.appendChild(createCell(todo.category));
         row.appendChild(createCell(todo.priority));
+
+        // Add Complete button if status is not 'Done'
+        const actionCell = document.createElement('td');
+        actionCell.className = 'py-3 px-4 whitespace-nowrap text-sm text-gray-700';
+        if (todo.status !== 'Done') {
+            const btn = document.createElement('button');
+            btn.textContent = 'Complete';
+            btn.className = 'bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded transition';
+            btn.onclick = () => markTaskAsDone(todo.id);
+            actionCell.appendChild(btn);
+        } else {
+            actionCell.innerHTML = '<span class="text-green-600 font-semibold">Completed</span>';
+        }
+        row.appendChild(actionCell);
+
         tbody.appendChild(row);
     });
+}
+
+// Update: Add this function to mark a task as Done in IndexedDB
+function markTaskAsDone(taskId) {
+    const transaction = db.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const getRequest = store.get(taskId);
+
+    getRequest.onsuccess = () => {
+        const task = getRequest.result;
+        if (task) {
+            task.status = 'Done';
+            const updateRequest = store.put(task);
+            updateRequest.onsuccess = () => {
+                loadTasksFromDB(); // Refresh table
+            };
+            updateRequest.onerror = (event) => {
+                console.error('Error updating task:', event.target.error);
+            };
+        }
+    };
+
+    getRequest.onerror = (event) => {
+        console.error('Error fetching task:', event.target.error);
+    };
 }
 
 function openDatabase() {
     if (!('indexedDB' in window)) {
         console.error("IndexedDB not supported.");
-        document.getElementById('todoTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">IndexedDB not supported by your browser.</td></tr>';
+        document.getElementById('todoTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-500">IndexedDB not supported by your browser.</td></tr>';
         return;
     }
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -85,7 +128,7 @@ function openDatabase() {
     };
     request.onerror = (event) => {
         console.error(`IndexedDB error: ${event.target.errorCode}`);
-        document.getElementById('todoTableBody').innerHTML = '<tr><td colspan="4" class="text-center py-8 text-red-500">Error opening IndexedDB.</td></tr>';
+        document.getElementById('todoTableBody').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-500">Error opening IndexedDB.</td></tr>';
     };
 }
 
