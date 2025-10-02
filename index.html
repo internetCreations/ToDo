@@ -3,15 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWA with Simple IndexedDB String</title>
-    <!-- Link to the manifest file (must be in the root folder) -->
+    <title>PWA: Storage & Microphone Test</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="manifest" href="/manifest.json">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7fa;
+        }
+    </style>
 </head>
-<body>
-    <div>
-        <h1>IndexedDB String Storage</h1>
-        <p>This page saves and loads a simple string using the IndexedDB API.</p>
-        <div id="data-output">Loading Data...</div>
+<body class="p-4 sm:p-8 min-h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-lg bg-white shadow-xl rounded-xl p-6 sm:p-8 space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800 border-b pb-3 mb-4">PWA Capabilities Test</h1>
+
+        <!-- Microphone Access Card -->
+        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 shadow-inner">
+            <h2 class="text-xl font-semibold text-indigo-700 mb-3">Microphone Test (WebRTC)</h2>
+            <p class="text-sm text-gray-600 mb-4">Click below to test if your browser/PWA can request permission to access the device's microphone.</p>
+            
+            <button id="mic-button" 
+                    class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                Request Microphone Access
+            </button>
+            
+            <div id="mic-output" class="mt-4 text-center font-mono text-sm p-3 bg-white rounded-md border border-gray-300">
+                Awaiting test...
+            </div>
+        </div>
+        
+        <!-- IndexedDB Storage Card -->
+        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-inner">
+            <h2 class="text-xl font-semibold text-gray-700 mb-3">IndexedDB Storage Test</h2>
+            <p class="text-sm text-gray-600 mb-3">This test confirms persistent data storage is working.</p>
+            <div id="indexeddb-output" class="text-center font-mono text-sm p-3 bg-white rounded-md border border-gray-300">
+                Loading Data...
+            </div>
+        </div>
     </div>
 
     <script>
@@ -20,20 +50,24 @@
         const DB_VERSION = 1;
         const STORE_NAME = 'simpleDataStore';
         const KEY_DATA = 'helloString';
-        const DATA_TO_STORE = 'Hello data';
+        const DATA_TO_STORE = 'Hello PWA Data Persistence!';
 
         let db; // Global reference for the database
+
+        // --- IndexedDB Functions ---
 
         /**
          * 1. Initializes the IndexedDB connection.
          * 2. Calls the save function upon successful connection.
          */
         function initDB() {
+            const outputElement = document.getElementById('indexeddb-output');
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = (event) => {
                 console.error("IndexedDB error:", event.target.error);
-                document.getElementById('data-output').textContent = 'Error: DB unavailable.';
+                outputElement.textContent = 'Error: IndexedDB unavailable.';
+                outputElement.classList.add('text-red-600');
             };
 
             request.onsuccess = (event) => {
@@ -59,6 +93,9 @@
          * then immediately performs a read transaction to display it.
          */
         function saveDataAndLoad() {
+            const outputElement = document.getElementById('indexeddb-output');
+            outputElement.classList.remove('text-red-600', 'text-green-600');
+            
             // --- 1. SAVE TRANSACTION (Write) ---
             const saveTx = db.transaction([STORE_NAME], 'readwrite');
             const saveStore = saveTx.objectStore(STORE_NAME);
@@ -75,21 +112,18 @@
             };
 
             // --- 2. LOAD TRANSACTION (Read) ---
-            // We wait for the save transaction to complete before starting the load transaction.
-            // In IndexedDB, it's best practice to separate read and write transactions.
             saveTx.oncomplete = () => {
                 const loadTx = db.transaction([STORE_NAME], 'readonly');
                 const loadStore = loadTx.objectStore(STORE_NAME);
                 
-                // Get the string value using its defined key
                 const loadRequest = loadStore.get(KEY_DATA);
 
                 loadRequest.onsuccess = (event) => {
                     const loadedData = event.target.result;
-                    const outputElement = document.getElementById('data-output');
                     
                     if (loadedData) {
                         outputElement.textContent = `Data Loaded: "${loadedData}"`;
+                        outputElement.classList.add('text-green-600');
                     } else {
                         outputElement.textContent = 'Data Loaded: (Key not found)';
                     }
@@ -97,16 +131,61 @@
 
                 loadRequest.onerror = (event) => {
                     console.error("Failed to load data:", event.target.error);
-                    document.getElementById('data-output').textContent = 'Error during load.';
+                    outputElement.textContent = 'Error during load.';
+                    outputElement.classList.add('text-red-600');
                 };
             };
         }
 
-        // Initialize the database connection when the window loads
+        // --- Microphone Access Function ---
+
+        /**
+         * Requests microphone access using the WebRTC API.
+         * Updates the dedicated output area with the result.
+         */
+        async function requestMicrophoneAccess() {
+            const output = document.getElementById('mic-output');
+            output.textContent = 'Requesting permission... (Check for system prompt)';
+            output.classList.remove('text-red-500', 'text-green-500');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                output.textContent = 'ERROR: navigator.mediaDevices.getUserMedia is not supported by this browser.';
+                output.classList.add('text-red-500');
+                return;
+            }
+
+            try {
+                // Request only audio access
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+                // If successful, stop the tracks immediately. We only needed to confirm access.
+                stream.getTracks().forEach(track => track.stop());
+
+                output.textContent = 'SUCCESS: Microphone access granted! You may see a microphone indicator at the top of your screen.';
+                output.classList.add('text-green-500');
+            } catch (err) {
+                // Handle rejection or error
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    output.textContent = 'ERROR: Access denied by user or system settings. Check iOS Settings > Safari > Microphone.';
+                } else if (err.name === 'NotFoundError') {
+                    output.textContent = 'ERROR: No microphone device found.';
+                } else {
+                    output.textContent = `ERROR: An unexpected error occurred (${err.name}). Check console for details.`;
+                    console.error('Microphone Error:', err);
+                }
+                output.classList.add('text-red-500');
+            }
+        }
+
+
+        // --- Initialization ---
         window.onload = function() {
+            // 1. Initialize IndexedDB
             initDB();
+            
+            // 2. Set up microphone button listener
+            document.getElementById('mic-button').addEventListener('click', requestMicrophoneAccess);
         };
     </script>
 </body>
 </html>
-
