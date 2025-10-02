@@ -3,9 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My First Webpage</title>
+    <title>PWA with Simple IndexedDB String</title>
+    <!-- Link to the manifest file (must be in the root folder) -->
+    <link rel="manifest" href="/manifest.json">
 </head>
 <body>
-    <h1>Hello, World!</h1>
+    <div>
+        <h1>IndexedDB String Storage</h1>
+        <p>This page saves and loads a simple string using the IndexedDB API.</p>
+        <div id="data-output">Loading Data...</div>
+    </div>
+
+    <script>
+        // --- IndexedDB Constants ---
+        const DB_NAME = 'StringStorageDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'simpleDataStore';
+        const KEY_DATA = 'helloString';
+        const DATA_TO_STORE = 'Hello data';
+
+        let db; // Global reference for the database
+
+        /**
+         * 1. Initializes the IndexedDB connection.
+         * 2. Calls the save function upon successful connection.
+         */
+        function initDB() {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onerror = (event) => {
+                console.error("IndexedDB error:", event.target.error);
+                document.getElementById('data-output').textContent = 'Error: DB unavailable.';
+            };
+
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                console.log("IndexedDB opened successfully.");
+                // Start the save and load process once the DB is open
+                saveDataAndLoad(); 
+            };
+
+            request.onupgradeneeded = (event) => {
+                // This runs only on initial creation or version upgrade
+                db = event.target.result;
+                // Create the object store if it doesn't exist
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME);
+                    console.log("Object store created.");
+                }
+            };
+        }
+
+        /**
+         * Performs a read-write transaction to save the string,
+         * then immediately performs a read transaction to display it.
+         */
+        function saveDataAndLoad() {
+            // --- 1. SAVE TRANSACTION (Write) ---
+            const saveTx = db.transaction([STORE_NAME], 'readwrite');
+            const saveStore = saveTx.objectStore(STORE_NAME);
+            
+            // Put (insert or update) the string value with a defined key
+            const saveRequest = saveStore.put(DATA_TO_STORE, KEY_DATA);
+
+            saveRequest.onsuccess = () => {
+                console.log(`Successfully saved string: "${DATA_TO_STORE}"`);
+            };
+
+            saveRequest.onerror = (event) => {
+                console.error("Failed to save data:", event.target.error);
+            };
+
+            // --- 2. LOAD TRANSACTION (Read) ---
+            // We wait for the save transaction to complete before starting the load transaction.
+            // In IndexedDB, it's best practice to separate read and write transactions.
+            saveTx.oncomplete = () => {
+                const loadTx = db.transaction([STORE_NAME], 'readonly');
+                const loadStore = loadTx.objectStore(STORE_NAME);
+                
+                // Get the string value using its defined key
+                const loadRequest = loadStore.get(KEY_DATA);
+
+                loadRequest.onsuccess = (event) => {
+                    const loadedData = event.target.result;
+                    const outputElement = document.getElementById('data-output');
+                    
+                    if (loadedData) {
+                        outputElement.textContent = `Data Loaded: "${loadedData}"`;
+                    } else {
+                        outputElement.textContent = 'Data Loaded: (Key not found)';
+                    }
+                };
+
+                loadRequest.onerror = (event) => {
+                    console.error("Failed to load data:", event.target.error);
+                    document.getElementById('data-output').textContent = 'Error during load.';
+                };
+            };
+        }
+
+        // Initialize the database connection when the window loads
+        window.onload = function() {
+            initDB();
+        };
+    </script>
 </body>
 </html>
+
