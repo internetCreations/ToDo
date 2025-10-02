@@ -1,191 +1,511 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWA: Storage & Microphone Test</title>
-    <!-- Tailwind CSS CDN for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="/manifest.json">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f4f7fa;
-        }
-    </style>
-</head>
-<body class="p-4 sm:p-8 min-h-screen flex items-center justify-center">
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  getFirestore, doc, collection, query, onSnapshot, 
+  addDoc, updateDoc, deleteDoc, getDocs, setDoc, where, orderBy, writeBatch, Timestamp 
+} from 'firebase/firestore';
+import { Plus, Trash2, Loader, Check, X, ChevronDown } from 'lucide-react';
 
-    <div class="w-full max-w-lg bg-white shadow-xl rounded-xl p-6 sm:p-8 space-y-6">
-        <h1 class="text-3xl font-bold text-gray-800 border-b pb-3 mb-4">PWA Capabilities Test</h1>
+// --- Global Variable Access ---
+// Note: These variables are provided by the canvas environment.
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        <!-- Microphone Access Card -->
-        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 shadow-inner">
-            <h2 class="text-xl font-semibold text-indigo-700 mb-3">Microphone Test (WebRTC)</h2>
-            <p class="text-sm text-gray-600 mb-4">Click below to test if your browser/PWA can request permission to access the device's microphone.</p>
-            
-            <button id="mic-button" 
-                    class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 transition duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                Request Microphone Access
-            </button>
-            
-            <div id="mic-output" class="mt-4 text-center font-mono text-sm p-3 bg-white rounded-md border border-gray-300">
-                Awaiting test...
-            </div>
-        </div>
-        
-        <!-- IndexedDB Storage Card -->
-        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-inner">
-            <h2 class="text-xl font-semibold text-gray-700 mb-3">IndexedDB Storage Test</h2>
-            <p class="text-sm text-gray-600 mb-3">This test confirms persistent data storage is working.</p>
-            <div id="indexeddb-output" class="text-center font-mono text-sm p-3 bg-white rounded-md border border-gray-300">
-                Loading Data...
-            </div>
-        </div>
-    </div>
+// --- Utility Functions and Constants ---
+const CATEGORIES = ['Social', 'Adventure', 'Money', 'Life Admin'];
+const PRIORITIES = ['Low', 'Medium', 'High'];
+const STATUSES = ['Not Started', 'In Progress', 'Done'];
 
-    <script>
-        // --- IndexedDB Constants ---
-        const DB_NAME = 'StringStorageDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'simpleDataStore';
-        const KEY_DATA = 'helloString';
-        const DATA_TO_STORE = 'Hello PWA Data Persistence!';
+const initialTodoList = [
+    { item: 'Call Mom', category: 'Social', status: 'Done', priority: 'Medium' },
+    { item: 'Hawaii Trip Plan', category: 'Adventure', status: 'In Progress', priority: 'Low' },
+    { item: 'House Shop', category: 'Money', status: 'In Progress', priority: 'Low' },
+    { item: 'RV kitchen storage', category: 'Adventure', status: 'Not Started', priority: 'Low' },
+    { item: 'RV propane tank', category: 'Adventure', status: 'Not Started', priority: 'Low' },
+    { item: 'Book Fall/Winter Housing', category: 'Life Admin', status: 'Not Started', priority: 'Low' },
+    { item: 'Switch Storage Units', category: 'Life Admin', status: 'Not Started', priority: 'Low' },
+    { item: 'Reply Alex', category: 'Social', status: 'Not Started', priority: 'Medium' },
+    { item: 'Call Grandma', category: 'Social', status: 'Not Started', priority: 'Medium' },
+    { item: 'House Insurance Check', category: 'Money', status: 'Not Started', priority: 'Medium' },
+];
 
-        let db; // Global reference for the database
+// Helper to get the correct Firestore collection path (using private user data)
+const getCollectionPath = (userId) => 
+  `/artifacts/${appId}/users/${userId}/todos`;
 
-        // --- IndexedDB Functions ---
+const getPriorityColor = (priority) => {
+    switch (priority) {
+        case 'High': return 'bg-red-500 text-white';
+        case 'Medium': return 'bg-yellow-500 text-white';
+        case 'Low': return 'bg-green-500 text-white';
+        default: return 'bg-gray-400';
+    }
+};
 
-        /**
-         * 1. Initializes the IndexedDB connection.
-         * 2. Calls the save function upon successful connection.
-         */
-        function initDB() {
-            const outputElement = document.getElementById('indexeddb-output');
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
+const getStatusBadge = (status) => {
+    switch (status) {
+        case 'Done': return 'bg-green-100 text-green-700 border-green-200';
+        case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
+        case 'Not Started': return 'bg-gray-100 text-gray-700 border-gray-200';
+        default: return 'bg-gray-100 text-gray-700';
+    }
+};
 
-            request.onerror = (event) => {
-                console.error("IndexedDB error:", event.target.error);
-                outputElement.textContent = 'Error: IndexedDB unavailable.';
-                outputElement.classList.add('text-red-600');
-            };
+// --- Main App Component ---
 
-            request.onsuccess = (event) => {
-                db = event.target.result;
-                console.log("IndexedDB opened successfully.");
-                // Start the save and load process once the DB is open
-                saveDataAndLoad(); 
-            };
+const App = () => {
+    const [db, setDb] = useState(null);
+    const [auth, setAuth] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [todos, setTodos] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-            request.onupgradeneeded = (event) => {
-                // This runs only on initial creation or version upgrade
-                db = event.target.result;
-                // Create the object store if it doesn't exist
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    db.createObjectStore(STORE_NAME);
-                    console.log("Object store created.");
-                }
-            };
+    // Form state
+    const [newItem, setNewItem] = useState('');
+    const [newCategory, setNewCategory] = useState(CATEGORIES[0]);
+    const [newPriority, setNewPriority] = useState(PRIORITIES[0]);
+
+    // Sorting state
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
+
+    // --- 1. Firebase Initialization and Authentication ---
+    useEffect(() => {
+        if (!firebaseConfig) {
+            setError("Firebase configuration is missing. Cannot connect to database.");
+            setLoading(false);
+            return;
         }
 
-        /**
-         * Performs a read-write transaction to save the string,
-         * then immediately performs a read transaction to display it.
-         */
-        function saveDataAndLoad() {
-            const outputElement = document.getElementById('indexeddb-output');
-            outputElement.classList.remove('text-red-600', 'text-green-600');
-            
-            // --- 1. SAVE TRANSACTION (Write) ---
-            const saveTx = db.transaction([STORE_NAME], 'readwrite');
-            const saveStore = saveTx.objectStore(STORE_NAME);
-            
-            // Put (insert or update) the string value with a defined key
-            const saveRequest = saveStore.put(DATA_TO_STORE, KEY_DATA);
+        try {
+            const app = initializeApp(firebaseConfig);
+            const firestore = getFirestore(app);
+            const authInstance = getAuth(app);
+            setDb(firestore);
+            setAuth(authInstance);
 
-            saveRequest.onsuccess = () => {
-                console.log(`Successfully saved string: "${DATA_TO_STORE}"`);
-            };
-
-            saveRequest.onerror = (event) => {
-                console.error("Failed to save data:", event.target.error);
-            };
-
-            // --- 2. LOAD TRANSACTION (Read) ---
-            saveTx.oncomplete = () => {
-                const loadTx = db.transaction([STORE_NAME], 'readonly');
-                const loadStore = loadTx.objectStore(STORE_NAME);
-                
-                const loadRequest = loadStore.get(KEY_DATA);
-
-                loadRequest.onsuccess = (event) => {
-                    const loadedData = event.target.result;
-                    
-                    if (loadedData) {
-                        outputElement.textContent = `Data Loaded: "${loadedData}"`;
-                        outputElement.classList.add('text-green-600');
-                    } else {
-                        outputElement.textContent = 'Data Loaded: (Key not found)';
-                    }
-                };
-
-                loadRequest.onerror = (event) => {
-                    console.error("Failed to load data:", event.target.error);
-                    outputElement.textContent = 'Error during load.';
-                    outputElement.classList.add('text-red-600');
-                };
-            };
-        }
-
-        // --- Microphone Access Function ---
-
-        /**
-         * Requests microphone access using the WebRTC API.
-         * Updates the dedicated output area with the result.
-         */
-        async function requestMicrophoneAccess() {
-            const output = document.getElementById('mic-output');
-            output.textContent = 'Requesting permission... (Check for system prompt)';
-            output.classList.remove('text-red-500', 'text-green-500');
-
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                output.textContent = 'ERROR: navigator.mediaDevices.getUserMedia is not supported by this browser.';
-                output.classList.add('text-red-500');
-                return;
-            }
-
-            try {
-                // Request only audio access
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-
-                // If successful, stop the tracks immediately. We only needed to confirm access.
-                stream.getTracks().forEach(track => track.stop());
-
-                output.textContent = 'SUCCESS: Microphone access granted! You may see a microphone indicator at the top of your screen.';
-                output.classList.add('text-green-500');
-            } catch (err) {
-                // Handle rejection or error
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    output.textContent = 'ERROR: Access denied by user or system settings. Check iOS Settings > Safari > Microphone.';
-                } else if (err.name === 'NotFoundError') {
-                    output.textContent = 'ERROR: No microphone device found.';
+            const unsubscribe = onAuthStateChanged(authInstance, async (user) => {
+                let currentUserId;
+                if (user) {
+                    currentUserId = user.uid;
                 } else {
-                    output.textContent = `ERROR: An unexpected error occurred (${err.name}). Check console for details.`;
-                    console.error('Microphone Error:', err);
+                    // Sign in anonymously if no token or user exists
+                    try {
+                        const { user: anonUser } = await signInAnonymously(authInstance);
+                        currentUserId = anonUser.uid;
+                    } catch (e) {
+                        console.error("Anonymous sign-in failed:", e);
+                        setError("Failed to sign in. Check Firebase configuration/rules.");
+                        setLoading(false);
+                        return;
+                    }
                 }
-                output.classList.add('text-red-500');
-            }
+
+                setUserId(currentUserId);
+                setIsAuthReady(true);
+            });
+
+            // Cleanup listener on component unmount
+            return () => unsubscribe();
+        } catch (e) {
+            console.error("Firebase Initialization Error:", e);
+            setError("Failed to initialize Firebase services.");
+            setLoading(false);
         }
+    }, [firebaseConfig]);
 
+    // --- 2. Initialize Default Data (Run once after auth) ---
+    const initializeDefaultData = useCallback(async (currentDb, currentUserId) => {
+        if (!currentDb || !currentUserId) return;
 
-        // --- Initialization ---
-        window.onload = function() {
-            // 1. Initialize IndexedDB
-            initDB();
+        const path = getCollectionPath(currentUserId);
+        const q = query(collection(currentDb, path), where('initialized', '==', true));
+        
+        try {
+            const snapshot = await getDocs(q);
             
-            // 2. Set up microphone button listener
-            document.getElementById('mic-button').addEventListener('click', requestMicrophoneAccess);
-        };
-    </script>
-</body>
-</html>
+            if (snapshot.empty) {
+                console.log("No data found. Initializing with default list...");
+                const batch = writeBatch(currentDb);
+                const collectionRef = collection(currentDb, path);
+
+                initialTodoList.forEach((todo) => {
+                    const newDocRef = doc(collectionRef);
+                    batch.set(newDocRef, { 
+                        ...todo, 
+                        createdAt: Timestamp.now().toMillis(),
+                    });
+                });
+
+                // Add a sentinel document to prevent future initialization
+                batch.set(doc(collectionRef, 'metadata'), { initialized: true });
+                await batch.commit();
+                console.log("Default data initialized successfully.");
+            }
+        } catch (e) {
+            console.error("Error initializing default data:", e);
+            // Don't set a critical error, just log.
+        }
+    }, []);
+
+    // --- 3. Firestore Data Listener (Real-time updates) ---
+    useEffect(() => {
+        if (!db || !isAuthReady || !userId) return;
+
+        setLoading(true);
+        
+        // Check and initialize default data if necessary
+        initializeDefaultData(db, userId);
+
+        const path = getCollectionPath(userId);
+        
+        // Create the query, using sortBy and sortDirection
+        const q = query(collection(db, path), orderBy(sortBy, sortDirection));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const newTodos = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                if (doc.id !== 'metadata' && data.item) { // Filter out the metadata sentinel and ensure it's a valid todo
+                     newTodos.push({ id: doc.id, ...data });
+                }
+            });
+            setTodos(newTodos);
+            setLoading(false);
+        }, (e) => {
+            console.error("Firestore Snapshot Error:", e);
+            setError("Failed to fetch tasks in real-time.");
+            setLoading(false);
+        });
+
+        // Clean up the listener when the component unmounts or dependencies change
+        return () => unsubscribe();
+    }, [db, isAuthReady, userId, initializeDefaultData, sortBy, sortDirection]);
+
+    // --- CRUD Operations ---
+
+    const addTodo = async (e) => {
+        e.preventDefault();
+        if (!db || !userId || newItem.trim() === '') return;
+        
+        try {
+            const collectionRef = collection(db, getCollectionPath(userId));
+            await addDoc(collectionRef, {
+                item: newItem.trim(),
+                category: newCategory,
+                status: 'Not Started',
+                priority: newPriority,
+                createdAt: Timestamp.now().toMillis(),
+            });
+            setNewItem(''); // Clear input after successful add
+        } catch (e) {
+            console.error("Error adding document: ", e);
+            setError("Failed to add task.");
+        }
+    };
+
+    const updateStatus = async (todoId, currentStatus) => {
+        if (!db || !userId) return;
+
+        const nextStatus = currentStatus === 'Done' ? 'Not Started' : 'Done';
+        
+        try {
+            const todoRef = doc(db, getCollectionPath(userId), todoId);
+            await updateDoc(todoRef, {
+                status: nextStatus
+            });
+        } catch (e) {
+            console.error("Error updating status: ", e);
+            setError("Failed to update task status.");
+        }
+    };
+    
+    const updatePriority = async (todoId, newPriority) => {
+        if (!db || !userId) return;
+        
+        try {
+            const todoRef = doc(db, getCollectionPath(userId), todoId);
+            await updateDoc(todoRef, {
+                priority: newPriority
+            });
+        } catch (e) {
+            console.error("Error updating priority: ", e);
+            setError("Failed to update task priority.");
+        }
+    };
+
+    const deleteTodo = async (todoId) => {
+        if (!db || !userId) return;
+        
+        try {
+            const todoRef = doc(db, getCollectionPath(userId), todoId);
+            await deleteDoc(todoRef);
+        } catch (e) {
+            console.error("Error deleting document: ", e);
+            setError("Failed to delete task.");
+        }
+    };
+
+    const handleSort = (key) => {
+        if (sortBy === key) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortBy(key);
+            setSortDirection('asc');
+        }
+    };
+
+    const SortIndicator = ({ columnKey }) => {
+        if (sortBy !== columnKey) return null;
+        return (
+            <span className="ml-1">
+                {sortDirection === 'asc' ? <ChevronDown size={14} className="rotate-180" /> : <ChevronDown size={14} />}
+            </span>
+        );
+    };
+
+    const HeaderButton = ({ columnKey, children }) => (
+        <button 
+            onClick={() => handleSort(columnKey)} 
+            className="flex items-center text-left font-semibold text-gray-700 hover:text-indigo-600 transition-colors"
+        >
+            {children}
+            <SortIndicator columnKey={columnKey} />
+        </button>
+    );
+
+    // --- Render Logic ---
+
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-600 bg-red-100 rounded-lg max-w-xl mx-auto mt-10">
+                <p className="font-bold">Application Error</p>
+                <p className="text-sm">{error}</p>
+                <p className="text-xs mt-2">Check console for Firebase config or rule issues.</p>
+            </div>
+        );
+    }
+    
+    // Show a loading screen if Firebase is ready but data is still fetching
+    if (loading && isAuthReady) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <Loader className="animate-spin text-indigo-500 mb-4" size={48} />
+                <p className="text-lg font-medium text-gray-700">Loading To-Do List...</p>
+                <p className="text-sm text-gray-500">Connecting to Firestore and fetching tasks.</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 sm:p-8 bg-gray-50 min-h-screen">
+            <div className="max-w-6xl mx-auto space-y-8">
+                <header className="py-6 bg-white shadow-md rounded-xl">
+                    <div className="flex flex-col sm:flex-row justify-between items-center px-6">
+                        <h1 className="text-3xl font-extrabold text-indigo-700">Task Manager</h1>
+                        <p className="text-sm text-gray-500 mt-2 sm:mt-0">
+                            User ID: <code className="bg-gray-100 p-1 rounded text-xs text-gray-600 select-all">{userId || 'Loading...'}</code>
+                        </p>
+                    </div>
+                </header>
+
+                {/* New Task Form */}
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">Add New Task</h2>
+                    <form onSubmit={addTodo} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div className="md:col-span-2">
+                            <label htmlFor="item" className="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+                            <input
+                                id="item"
+                                type="text"
+                                value={newItem}
+                                onChange={(e) => setNewItem(e.target.value)}
+                                placeholder="e.g., File Q4 Taxes"
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                            <select
+                                id="category"
+                                value={newCategory}
+                                onChange={(e) => setNewCategory(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none"
+                            >
+                                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <select
+                                id="priority"
+                                value={newPriority}
+                                onChange={(e) => setNewPriority(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none"
+                            >
+                                {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                            </select>
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={newItem.trim() === ''}
+                            className="flex items-center justify-center px-4 py-2 mt-4 md:mt-0 border border-transparent text-base font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            <Plus size={20} className="mr-2" /> Add Task
+                        </button>
+                    </form>
+                </div>
+
+                {/* Task List (Table for Desktop, List for Mobile) */}
+                <div className="bg-white rounded-xl shadow-lg overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <table className="min-w-full divide-y divide-gray-200 hidden md:table">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                                    <HeaderButton columnKey="status">Status</HeaderButton>
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-4/12">
+                                    <HeaderButton columnKey="item">Task Item</HeaderButton>
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">
+                                    <HeaderButton columnKey="category">Category</HeaderButton>
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">
+                                    <HeaderButton columnKey="priority">Priority</HeaderButton>
+                                </th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {todos.map((todo) => (
+                                <tr key={todo.id} className="hover:bg-indigo-50 transition-colors">
+                                    {/* Status Checkbox/Icon */}
+                                    <td className="px-6 py-3 whitespace-nowrap">
+                                        <button 
+                                            onClick={() => updateStatus(todo.id, todo.status)}
+                                            className={`p-2 rounded-full transition-all duration-150 ${
+                                                todo.status === 'Done' 
+                                                    ? 'bg-green-500 text-white shadow-md hover:bg-green-600'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            }`}
+                                            aria-label={todo.status === 'Done' ? 'Mark as Not Started' : 'Mark as Done'}
+                                        >
+                                            {todo.status === 'Done' ? <Check size={18} /> : <X size={18} />}
+                                        </button>
+                                    </td>
+                                    {/* Item */}
+                                    <td className={`px-6 py-3 text-sm font-medium ${todo.status === 'Done' ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                                        {todo.item}
+                                    </td>
+                                    {/* Category */}
+                                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            {todo.category}
+                                        </span>
+                                    </td>
+                                    {/* Priority Dropdown */}
+                                    <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                                        <select
+                                            value={todo.priority}
+                                            onChange={(e) => updatePriority(todo.id, e.target.value)}
+                                            className={`px-3 py-1 text-xs font-semibold rounded-lg shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 appearance-none transition-colors ${getPriorityColor(todo.priority)}`}
+                                        >
+                                            {PRIORITIES.map(p => <option key={p} value={p} className="bg-white text-gray-900">{p}</option>)}
+                                        </select>
+                                    </td>
+                                    {/* Delete Button */}
+                                    <td className="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                        <button 
+                                            onClick={() => deleteTodo(todo.id)}
+                                            className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-100 transition-colors"
+                                            aria-label="Delete Task"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Mobile List View (Cards) */}
+                    <div className="md:hidden divide-y divide-gray-200">
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase bg-gray-50">Task List ({todos.length})</div>
+                        {todos.map((todo) => (
+                            <div key={todo.id} className="p-4 bg-white hover:bg-indigo-50 transition-colors border-b last:border-b-0">
+                                <div className="flex justify-between items-start mb-2">
+                                    {/* Item & Status */}
+                                    <div className="flex-1 min-w-0 pr-4">
+                                        <p className={`text-base font-semibold ${todo.status === 'Done' ? 'line-through text-gray-500' : 'text-gray-900'}`}>
+                                            {todo.item}
+                                        </p>
+                                        <span className={`mt-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(todo.status)}`}>
+                                            {todo.status}
+                                        </span>
+                                    </div>
+                                    {/* Actions */}
+                                    <div className="flex space-x-2">
+                                        <button 
+                                            onClick={() => updateStatus(todo.id, todo.status)}
+                                            className={`p-2 rounded-full transition-all duration-150 ${
+                                                todo.status === 'Done' 
+                                                    ? 'bg-green-500 text-white shadow-md hover:bg-green-600'
+                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            }`}
+                                            aria-label={todo.status === 'Done' ? 'Mark Not Done' : 'Mark Done'}
+                                        >
+                                            {todo.status === 'Done' ? <Check size={18} /> : <X size={18} />}
+                                        </button>
+                                        <button 
+                                            onClick={() => deleteTodo(todo.id)}
+                                            className="p-2 text-red-600 hover:text-red-900 rounded-lg hover:bg-red-100 transition-colors"
+                                            aria-label="Delete Task"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex justify-start space-x-4 text-sm">
+                                    {/* Category */}
+                                    <p className="text-gray-600">
+                                        <span className="font-medium text-indigo-700 mr-1">Cat:</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                            {todo.category}
+                                        </span>
+                                    </p>
+                                    {/* Priority */}
+                                    <p className="text-gray-600">
+                                        <span className="font-medium mr-1">Pri:</span>
+                                        <select
+                                            value={todo.priority}
+                                            onChange={(e) => updatePriority(todo.id, e.target.value)}
+                                            className={`px-3 py-1 text-xs font-semibold rounded-lg shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 appearance-none transition-colors ${getPriorityColor(todo.priority)}`}
+                                        >
+                                            {PRIORITIES.map(p => <option key={p} value={p} className="bg-white text-gray-900">{p}</option>)}
+                                        </select>
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {todos.length === 0 && (
+                     <div className="text-center p-8 bg-white rounded-xl text-gray-500 border border-dashed border-gray-300">
+                        You have no tasks! Use the form above to add your first item.
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default App;
