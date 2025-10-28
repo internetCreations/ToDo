@@ -1,6 +1,400 @@
-<div class="mobile-card">
-  <h2>Task Title</h2>
-  <p>Task Description</p>
-  <input type="checkbox" id="task-complete">
-  <label for="task-complete">Mark as done</label>
-</div>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ToDo — Home</title>
+
+  <style>
+    :root{
+      --gap: 16px;
+      --bg: #f7f8fb;
+      --card: #fff;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --radius: 12px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-size: 16px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#eef2ff 0%,var(--bg) 100%);color:#0f172a;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+    header.app-header{
+      max-width:1200px;margin:18px auto 0;padding:0 16px;
+      display:flex;align-items:center;gap:12px;
+    }
+    header.app-header h1{margin:0;font-size:1.125rem}
+    header.app-header .meta{color:var(--muted);font-size:0.95rem;margin-left:auto}
+
+    main.app{
+      display:flex;
+      flex-direction:column;
+      gap:var(--gap);
+      max-width:1200px;
+      margin:12px auto 48px;
+      padding:12px 16px;
+    }
+
+    /* Panel common */
+    .panel{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 8px 24px rgba(15,23,42,0.06);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    /* Today's: show times as a bulleted list */
+    .today h2{margin:0;font-size:1.05rem}
+    .today ul{margin:8px 0 0 18px;padding:0;list-style:disc}
+    .today li{display:flex;align-items:flex-start;gap:12px;margin:10px 0;line-height:1.25}
+    .today .time{min-width:64px;color:var(--muted);font-weight:600;font-size:0.95rem}
+    .todo-text{flex:1;display:flex;align-items:center;gap:10px}
+    .todo-text label{cursor:pointer}
+    .todo-actions{display:flex;gap:8px;align-items:center;margin-left:8px}
+
+    /* Right column sections - weekly & monthly - we will stack on mobile using details/summary for collapsible */
+    .right{display:flex;flex-direction:column;gap:var(--gap)}
+
+    .section-header{display:flex;justify-content:space-between;align-items:center}
+    .section-header h3{margin:0;font-size:1rem}
+    .list{overflow:auto;max-height:36vh}
+    .list-item{display:flex;align-items:center;gap:12px;padding:8px 6px;border-radius:8px}
+    .list-item + .list-item{margin-top:6px}
+    input[type="checkbox"]{width:18px;height:18px}
+    .completed{text-decoration:line-through;color:var(--muted);opacity:0.9}
+
+    .inline-form{display:flex;gap:8px;margin-left:auto}
+    .inline-form input[type="text"]{padding:8px 10px;border-radius:10px;border:1px solid #e6e9ef;min-width:0;font-size:0.95rem}
+    .btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:10px;border:0;font-weight:700;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12);font-weight:700}
+
+    /* Accordion (details/summary) styling to make it look like a panel on mobile */
+    details.panel { padding:0; overflow:visible; }
+    details summary{
+      list-style:none;
+      cursor:pointer;
+      padding:14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-radius:var(--radius);
+      outline:none;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+    details .content{padding:10px 14px 14px; display:block; background:var(--card); border-radius:0 0 var(--radius) var(--radius)}
+
+    /* Make inputs and buttons friendlier on touch */
+    input[type="text"], button, summary{touch-action:manipulation}
+    button, input[type="checkbox"]{ -webkit-tap-highlight-color: rgba(0,0,0,0.05) }
+
+    /* Responsive: two-column layout on larger screens */
+    @media (min-width:861px){
+      main.app{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);padding:20px}
+      .right{display:grid;grid-template-rows:1fr 1fr;gap:var(--gap)}
+      details.panel, details .content, details summary{padding:0;background:transparent;border-radius:0}
+      /* Use sections (non-collapsible) on desktop */
+      details.panel > summary { display:none; }
+      details.panel > .content { padding:0 }
+      .panel .content{padding:0}
+      .panel .list{max-height:calc(40vh)}
+    }
+
+    /* small adjustments for very small screens */
+    @media (max-width:420px){
+      :root{font-size:15px}
+      .today .time{min-width:56px;font-size:0.9rem}
+      .inline-form input[type="text"]{min-width:120px}
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" role="banner" aria-label="ToDo app header">
+    <h1>ToDo</h1>
+    <div class="meta" id="date-meta" aria-hidden="true"></div>
+  </header>
+
+  <main class="app" role="main" aria-labelledby="app-title">
+    <!-- LEFT: Today's Todos (bulleted list of times) -->
+    <section class="panel today" aria-labelledby="today-title">
+      <h2 id="today-title">Today's Todos</h2>
+
+      <ul id="today-list" aria-live="polite"></ul>
+
+      <form id="today-add" style="display:flex;gap:8px;align-items:center;margin-top:6px" onsubmit="addToday(event)">
+        <input type="time" name="time" aria-label="Todo time" required style="padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+        <input type="text" name="text" placeholder="Add today's todo" aria-label="Add today's todo" required style="flex:1;padding:8px;border-radius:8px;border:1px solid #e6e9ef">
+        <button class="btn" type="submit">Add</button>
+      </form>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <small style="color:var(--muted)">Tap to mark done. Items are saved locally.</small>
+        <div style="margin-left:auto">
+          <button class="btn ghost" onclick="clearCompleted('today')">Clear completed</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: weekly & monthly. Use details so they collapse on mobile -->
+    <div class="right">
+      <!-- Weekly -->
+      <details id="weekly-panel" class="panel" open>
+        <summary class="section-header" aria-controls="weekly-content" aria-expanded="true">
+          <h3 id="weekly-title">This Week</h3>
+          <form class="inline-form" id="weekly-add" onsubmit="addFromForm(event,'weekly')">
+            <input type="text" name="text" placeholder="Add weekly todo" aria-label="Add weekly todo" required>
+            <button class="btn" type="submit">Add</button>
+          </form>
+        </summary>
+
+        <div id="weekly-content" class="content">
+          <div id="weekly-list" class="list" aria-live="polite"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <small style="color:var(--muted)">Swipe or tap to interact.</small>
+            <div style="margin-left:auto">
+              <button class="btn ghost" onclick="clearCompleted('weekly')">Clear completed</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Monthly -->
+      <details id="monthly-panel" class="panel" open>
+        <summary class="section-header" aria-controls="monthly-content" aria-expanded="true">
+          <h3 id="monthly-title">This Month</h3>
+          <form class="inline-form" id="monthly-add" onsubmit="addFromForm(event,'monthly')">
+            <input type="text" name="text" placeholder="Add monthly todo" aria-label="Add monthly todo" required>
+            <button class="btn" type="submit">Add</button>
+          </form>
+        </summary>
+
+        <div id="monthly-content" class="content">
+          <div id="monthly-list" class="list" aria-live="polite"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <small style="color:var(--muted)">Long-term items live here.</small>
+            <div style="margin-left:auto">
+              <button class="btn ghost" onclick="clearCompleted('monthly')">Clear completed</button>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script>
+    // Storage keys
+    const STORAGE_KEYS = {
+      today: 'todos:today:v1',
+      weekly: 'todos:weekly:v1',
+      monthly: 'todos:monthly:v1'
+    };
+
+    // Utility
+    function uid(prefix='id'){ return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`; }
+    function escapeHtml(str = '') {
+      return String(str).replace(/[&<>\"]'/g, function(m) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]);
+      });
+    }
+
+    // Basic data model: array of { id, text, time?, checked }
+    function saveList(key, arr){
+      try{ localStorage.setItem(key, JSON.stringify(arr || [])); } catch(e){}
+    }
+    function loadList(key){
+      try{ return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e){ return [] }
+    }
+
+    // Renderers
+    function renderToday(){
+      const ul = document.getElementById('today-list');
+      ul.innerHTML = '';
+      const items = loadList(STORAGE_KEYS.today);
+      if(items.length === 0){
+        const li = document.createElement('li');
+        li.style.color = 'var(--muted)';
+        li.textContent = 'No todos for today — add one below.';
+        ul.appendChild(li);
+        return;
+      }
+      items.forEach(item => {
+        const li = document.createElement('li');
+        const time = document.createElement('span');
+        time.className = 'time';
+        time.textContent = item.time || '';
+        const body = document.createElement('span');
+        body.className = 'todo-text';
+        body.innerHTML = `<input type="checkbox" id="${item.id}" ${item.checked ? 'checked' : ''}>
+                          <label for="${item.id}">${escapeHtml(item.text)}</label>`;
+        const actions = document.createElement('span');
+        actions.className = 'todo-actions';
+        actions.innerHTML = `<button class="btn ghost" onclick="removeItem('today','${item.id}')">Remove</button>`;
+        li.appendChild(time);
+        li.appendChild(body);
+        li.appendChild(actions);
+        ul.appendChild(li);
+
+        // reflect completed style
+        const cb = li.querySelector('input[type="checkbox"]');
+        const label = li.querySelector('label');
+        if(cb && label){
+          label.classList.toggle('completed', cb.checked);
+          cb.addEventListener('change', () => toggleChecked('today', item.id, cb.checked, label));
+        }
+      });
+    }
+
+    function renderList(section){ // weekly/monthly
+      const container = document.getElementById(section + '-list');
+      container.innerHTML = '';
+      const items = loadList(STORAGE_KEYS[section]);
+      if(items.length === 0){
+        const p = document.createElement('div');
+        p.style.color = 'var(--muted)';
+        p.style.padding = '8px';
+        p.textContent = section === 'weekly' ? 'No weekly todos. Add one above.' : 'No monthly todos. Add one above.';
+        container.appendChild(p);
+        return;
+      }
+      items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'list-item';
+        row.innerHTML = `
+          <input type="checkbox" id="${item.id}" ${item.checked ? 'checked' : ''}>
+          <label for="${item.id}">${escapeHtml(item.text)}</label>
+          <div style="margin-left:auto">
+            <button class="btn ghost" onclick="removeItem('${section}','${item.id}')">Remove</button>
+          </div>
+        `;
+        container.appendChild(row);
+
+        const cb = row.querySelector('input[type="checkbox"]');
+        const label = row.querySelector('label');
+        if(cb && label){
+          label.classList.toggle('completed', cb.checked);
+          cb.addEventListener('change', () => toggleChecked(section, item.id, cb.checked, label));
+        }
+      });
+    }
+
+    // Actions
+    function addToday(e){
+      e.preventDefault();
+      const form = e.target;
+      const time = form.elements['time'].value;
+      const text = form.elements['text'].value.trim();
+      if(!text) return;
+      const arr = loadList(STORAGE_KEYS.today);
+      arr.unshift({ id: uid('t'), text, time, checked: false });
+      saveList(STORAGE_KEYS.today, arr);
+      form.reset();
+      renderToday();
+    }
+
+    function addFromForm(e, section){
+      e.preventDefault();
+      const form = e.target;
+      const text = (form.elements['text'].value || '').trim();
+      if(!text) return;
+      const arr = loadList(STORAGE_KEYS[section]);
+      arr.unshift({ id: uid(section[0]), text, checked: false });
+      saveList(STORAGE_KEYS[section], arr);
+      form.reset();
+      renderList(section);
+    }
+
+    function toggleChecked(section, id, checked, labelEl){
+      const key = STORAGE_KEYS[section];
+      const arr = loadList(key).map(i => i.id === id ? ({...i, checked}) : i);
+      saveList(key, arr);
+      if(labelEl) labelEl.classList.toggle('completed', checked);
+    }
+
+    function removeItem(section, id){
+      const key = STORAGE_KEYS[section];
+      const arr = loadList(key).filter(i => i.id !== id);
+      saveList(key, arr);
+      if(section === 'today') renderToday(); else renderList(section);
+    }
+
+    function clearCompleted(section){
+      const key = STORAGE_KEYS[section];
+      const arr = loadList(key).filter(i => !i.checked);
+      saveList(key, arr);
+      if(section === 'today') renderToday(); else renderList(section);
+    }
+
+    // Bootstrap
+    function renderAll(){
+      renderToday();
+      renderList('weekly');
+      renderList('monthly');
+    }
+
+    // Header date
+    function prettyDate(){
+      const d = new Date();
+      return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+    }
+    document.getElementById('date-meta').textContent = prettyDate();
+
+    // Initialize with some sensible defaults if empty (optional)
+    function seedIfEmpty(){
+      if(loadList(STORAGE_KEYS.today).length === 0){
+        saveList(STORAGE_KEYS.today, [
+          { id: uid('t'), text: 'Morning review & plan', time:'08:00', checked:false },
+          { id: uid('t'), text: 'Client call', time:'10:30', checked:false },
+          { id: uid('t'), text: 'Write feature spec', time:'13:00', checked:false },
+        ]);
+      }
+      if(loadList(STORAGE_KEYS.weekly).length === 0){
+        saveList(STORAGE_KEYS.weekly, [
+          { id: uid('w'), text: 'Prepare sprint backlog', checked:false },
+          { id: uid('w'), text: 'Team retro', checked:false },
+        ]);
+      }
+      if(loadList(STORAGE_KEYS.monthly).length === 0){
+        saveList(STORAGE_KEYS.monthly, [
+          { id: uid('m'), text: 'Plan roadmap', checked:false }
+        ]);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      seedIfEmpty();
+      renderAll();
+
+      // Make summary toggle aria-expanded attribute reflect the details state (for accessibility)
+      document.querySelectorAll('details.panel').forEach(det => {
+        const summary = det.querySelector('summary');
+        if(!summary) return;
+        function sync(){
+          const expanded = det.open;
+          summary.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        }
+        det.addEventListener('toggle', sync);
+        sync();
+      });
+
+      // Improve hit targets for mobile by increasing label click area
+      document.body.addEventListener('click', (e) => {
+        const el = e.target;
+        if(el.tagName === 'LABEL' && el.htmlFor){
+          const cb = document.getElementById(el.htmlFor);
+          if(cb && cb.type === 'checkbox'){
+            // checkbox will be toggled automatically by browser; let change event handle state
+            // but ensure we update stored data (change events are attached to inputs on render)
+          }
+        }
+      }, {passive:true});
+    });
+  </script>
+</body>
+</html>
