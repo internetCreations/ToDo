@@ -1,11 +1,11 @@
 // Data set
 const data = [
-    { id: 1, name: "John Doe", age: 99, city: "New York" },
-    { id: 2, name: "Jane Smith", age: 34, city: "Los Angeles" },
-    { id: 3, name: "Sam Wilson", age: 23, city: "Chicago" }
+    { id: 1, name: "task 1", status: 99, details: "Details 1" },
+    { id: 2, name: "task 2", status: 34, details: "Details 2" },
+    { id: 3, name: "task 3", status: 23, details: "Details 3" }
 ];
 
-// Function to populate the table
+// Function to populate the table with initial data 
 function populateTable(data) {
     const tableBody = document.getElementById("table-body");
     data.forEach(item => {
@@ -13,8 +13,8 @@ function populateTable(data) {
         row.innerHTML = `
             <td>${item.id}</td>
             <td>${item.name}</td>
-            <td>${item.age}</td>
-            <td>${item.city}</td>
+            <td>${item.status}</td>
+            <td>${item.details}</td>
         `;
         tableBody.appendChild(row);
     });
