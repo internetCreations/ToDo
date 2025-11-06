@@ -1,13 +1,30 @@
-// Data set
-const data = [
-    { id: 1, name: "task 1", status: 99, details: "Details 1" },
-    { id: 2, name: "task 2", status: 34, details: "Details 2" },
-    { id: 3, name: "task 3", status: 23, details: "Details 3" }
+import { openDB } from 'idb';
+
+
+async function setupDatabase() {
+    const db = await openDB('myPwaDatabase', 1, {
+      upgrade(db) {
+        // Create object stores (like tables) during database upgrades
+        db.createObjectStore('myObjectStore', { keyPath: 'id', autoIncrement: true });
+      },
+    });
+    return db;
+}
+
+
+
+
+// Sample data set
+const sampleData = [
+    { id: 1, name: "task 1", status: 'In-Progress', details: "Details 1" },
+    { id: 2, name: "task 2", status: 'In-Progress', details: "Details 2" },
+    { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3" }
 ];
 
-// Function to populate the table with initial data 
+// Function to populate the table
 function populateTable(data) {
     const tableBody = document.getElementById("table-body");
+    tableBody.innerHTML = ""; // Clear existing rows
     data.forEach(item => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -20,5 +37,19 @@ function populateTable(data) {
     });
 }
 
-// Populate the table on page load
+// Check for cached data in localStorage
+function loadData() {
+    const cachedData = localStorage.getItem("taskData");
+    if (cachedData) {
+        // Use cached data if available
+        return JSON.parse(cachedData);
+    } else {
+        // Use sample data and cache it
+        localStorage.setItem("taskData", JSON.stringify(sampleData));
+        return sampleData;
+    }
+}
+
+// Load data and populate the table on page load
+const data = loadData();
 populateTable(data);
