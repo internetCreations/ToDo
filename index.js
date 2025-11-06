@@ -1,6 +1,6 @@
 // Data set
 const data = [
-    { id: 1, name: "John Doe", age: 28, city: "New York" },
+    { id: 1, name: "John Doe", age: 99, city: "New York" },
     { id: 2, name: "Jane Smith", age: 34, city: "Los Angeles" },
     { id: 3, name: "Sam Wilson", age: 23, city: "Chicago" }
 ];
