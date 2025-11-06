@@ -1,18 +1,3 @@
-import { openDB } from 'idb';
-
-
-async function setupDatabase() {
-    const db = await openDB('myPwaDatabase', 1, {
-      upgrade(db) {
-        // Create object stores (like tables) during database upgrades
-        db.createObjectStore('myObjectStore', { keyPath: 'id', autoIncrement: true });
-      },
-    });
-    return db;
-}
-
-
-
 
 // Sample data set
 const sampleData = [
