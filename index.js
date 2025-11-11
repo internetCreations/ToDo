@@ -8,7 +8,6 @@ const sampleData = [
     { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3" }
 ];
 
-data = '';
 // Function to populate the table
 function populateTable(data) {
     const tableBody = document.getElementById("table-body");
@@ -42,5 +41,5 @@ function dbConnect(){
    */
 
 // Load data and populate the table on page load
-populateTable(data);
+populateTable(sampleData);
 //dbConnect(); 
