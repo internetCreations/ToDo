@@ -38,9 +38,7 @@ function dbConnect(){
     console.log("Retrieved Data:", retrievedData);
 }
 
-function setupDatabase(){
     dbConnect(); 
-}
 
 // Load data and populate the table on page load
 populateTable(data);
