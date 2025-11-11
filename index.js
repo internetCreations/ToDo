@@ -9,7 +9,7 @@ const sampleData = [
 ];
 
 // Function to populate the table
-function populateTable(sampleData) {
+function populateTable(data) {
     const tableBody = document.getElementById("table-body");
     tableBody.innerHTML = ""; // Clear existing rows
     sampleData.forEach(item => {
@@ -23,6 +23,20 @@ function populateTable(sampleData) {
         tableBody.appendChild(row);
     });
 }
+
+function loadData() {
+    const cachedData = localStorage.getItem("taskData");
+    if (cachedData) {
+        // Use cached data if available
+        return JSON.parse(cachedData);
+    } else {
+        // Use sample data and cache it
+        localStorage.setItem("taskData", JSON.stringify(sampleData));
+        return sampleData;
+    }
+}
+
+
 /*
 function dbConnect(){ 
     // 1. Initialize the database connection
@@ -41,5 +55,6 @@ function dbConnect(){
    */
 
 // Load data and populate the table on page load
-populateTable(sampleData);
+const data = loadData();
+populateTable(data);
 //dbConnect(); 
