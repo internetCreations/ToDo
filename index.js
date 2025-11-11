@@ -38,7 +38,7 @@ function loadData() {
     }
 }
 
-function dbConnect(){ 
+function dbConnect() { 
     // 1. Initialize the database connection
     initDB();
     console.log("Database Ready.");
@@ -52,8 +52,21 @@ function dbConnect(){
     console.log("Retrieved Data:", retrievedData);
 }
 
+function initButtons() {
+  // Get the button element by its ID
+  const button = document.getElementById("setupDb");
+
+  // Define the function to be called
+  function myFunction() {
+    alert("Button clicked!");
+  }
+
+  // Attach the event listener
+  button.addEventListener("click", dbConnect); 
+}
 
 // Load data and populate the table on page load
 const data = loadData();
 populateTable(data);
+initButtons();
 //dbConnect(); 
