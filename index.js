@@ -42,4 +42,4 @@ function dbConnect(){
 
 // Load data and populate the table on page load
 populateTable(data);
-dbConnect(); 
+//dbConnect(); 
