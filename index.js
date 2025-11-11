@@ -3,7 +3,7 @@ import { initDB, saveAllRecords, getAllRecords } from './indexedDBManager.js';
 
 // Sample data set
 const sampleData = [
-    { id: 1, name: "task 1", status: 'In-Progress', details: "Details 1" },
+    { id: 1, name: "task 1a", status: 'In-Progress', details: "Details 1a" },
     { id: 2, name: "task 2", status: 'In-Progress', details: "Details 2" },
     { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3" }
 ];
@@ -25,33 +25,22 @@ function populateTable(data) {
 }
 
 function dbConnect(){ 
-// 1. Initialize the database connection
- initDB();
-console.log("Database Ready.");
+    // 1. Initialize the database connection
+    initDB();
+    console.log("Database Ready.");
 
-// 2. Save the initial "table" of data
- saveAllRecords(sampleData);
-console.log("Sample data saved.");
+    // 2. Save the initial "table" of data
+    saveAllRecords(sampleData);
+    console.log("Sample data saved.");
 
-// 3. Retrieve the saved data
-const retrievedData = getAllRecords();
-console.log("Retrieved Data:", retrievedData);
+    // 3. Retrieve the saved data
+    const retrievedData = getAllRecords();
+    console.log("Retrieved Data:", retrievedData);
 }
 
-/* Check for cached data in localStorage
-function loadData() {
-    const cachedData = localStorage.getItem("taskData");
-    if (cachedData) {
-        // Use cached data if available
-        return JSON.parse(cachedData);
-    } else {
-        // Use sample data and cache it
-        localStorage.setItem("taskData", JSON.stringify(sampleData));
-        return sampleData;
-    }
+function setupDatabase(){
+    dbConnect(); 
 }
 
 // Load data and populate the table on page load
-const data = loadData(); */
 populateTable(data);
-dbConnect();
