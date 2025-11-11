@@ -3,7 +3,7 @@ import { initDB, saveAllRecords, getAllRecords } from './indexedDBManager.js';
 
 // Sample data set
 const sampleData = [
-    { id: 1, name: "task 1a", status: 'In-Progress', details: "Details 1a" },
+    { id: 1, name: "task 1b", status: 'In-Progress', details: "Details 1a" },
     { id: 2, name: "task 2", status: 'In-Progress', details: "Details 2" },
     { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3" }
 ];
@@ -28,16 +28,16 @@ function loadData() {
     const cachedData = localStorage.getItem("taskData");
     if (cachedData) {
         // Use cached data if available
+        console.log("Using cached data.");
         return JSON.parse(cachedData);
     } else {
         // Use sample data and cache it
-        localStorage.setItem("taskData", JSON.stringify(sampleData));
+        //localStorage.setItem("taskData", JSON.stringify(sampleData));
+        console.log("Not Using cached data.");
         return sampleData;
     }
 }
 
-
-/*
 function dbConnect(){ 
     // 1. Initialize the database connection
     initDB();
@@ -52,7 +52,6 @@ function dbConnect(){
     console.log("Retrieved Data:", retrievedData);
 }
 
-   */
 
 // Load data and populate the table on page load
 const data = loadData();
