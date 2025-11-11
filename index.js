@@ -23,7 +23,7 @@ function populateTable(data) {
         tableBody.appendChild(row);
     });
 }
-
+/*
 function dbConnect(){ 
     // 1. Initialize the database connection
     initDB();
@@ -38,7 +38,7 @@ function dbConnect(){
     console.log("Retrieved Data:", retrievedData);
 }
 
-   
+   */
 
 // Load data and populate the table on page load
 populateTable(data);
