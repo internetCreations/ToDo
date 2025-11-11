@@ -1,4 +1,6 @@
 
+import { initDB, saveAllRecords, getAllRecords } from './indexedDBManager.js';
+
 // Sample data set
 const sampleData = [
     { id: 1, name: "task 1", status: 'In-Progress', details: "Details 1" },
@@ -22,7 +24,21 @@ function populateTable(data) {
     });
 }
 
-// Check for cached data in localStorage
+function dbConnect(){ 
+// 1. Initialize the database connection
+ initDB();
+console.log("Database Ready.");
+
+// 2. Save the initial "table" of data
+ saveAllRecords(sampleData);
+console.log("Sample data saved.");
+
+// 3. Retrieve the saved data
+const retrievedData = getAllRecords();
+console.log("Retrieved Data:", retrievedData);
+}
+
+/* Check for cached data in localStorage
 function loadData() {
     const cachedData = localStorage.getItem("taskData");
     if (cachedData) {
@@ -36,5 +52,6 @@ function loadData() {
 }
 
 // Load data and populate the table on page load
-const data = loadData();
+const data = loadData(); */
 populateTable(data);
+dbConnect();
