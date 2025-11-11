@@ -9,10 +9,10 @@ const sampleData = [
 ];
 
 // Function to populate the table
-function populateTable(data) {
+function populateTable(sampleData) {
     const tableBody = document.getElementById("table-body");
     tableBody.innerHTML = ""; // Clear existing rows
-    data.forEach(item => {
+    sampleData.forEach(item => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${item.id}</td>
