@@ -68,6 +68,8 @@ function initButtons() {
 }
 
 // Load data and populate the table on page load
+console.log(" start init ");
 const data = loadData();
 populateTable(data);
 initButtons();
+console.log(" end init ");
