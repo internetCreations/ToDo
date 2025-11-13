@@ -19,10 +19,28 @@ function populateTable(data) {
             <td>${item.name}</td>
             <td>${item.status}</td>
             <td>${item.details}</td>
-            <td><input type="checkbox" ${item.completed ? "checked" : ""}></td>
+            <td><input type="checkbox" class="completed-checkbox" data-index="${index}" ${item.completed ? "checked" : ""}></td>
         `;
         tableBody.appendChild(row);
     });
+
+    // Add event listeners to checkboxes
+    document.querySelectorAll(".completed-checkbox").forEach(checkbox => {
+        checkbox.addEventListener("change", handleCheckboxChange);
+    });
+}
+
+// Function to handle checkbox changes
+function handleCheckboxChange(event) {
+    const checkbox = event.target;
+    const index = checkbox.getAttribute("data-index");
+    const data = loadData();
+
+    // Update the completed status in the data array
+    data[index].completed = checkbox.checked;
+
+    // Save the updated data back to localStorage
+    localStorage.setItem("taskData", JSON.stringify(data));
 }
 
 function loadData() {
@@ -33,27 +51,10 @@ function loadData() {
         return JSON.parse(cachedData);
     } else {
         // Use sample data and cache it
-        //localStorage.setItem("taskData", JSON.stringify(sampleData));
-        console.log("Not Using cached data.");
+        localStorage.setItem("taskData", JSON.stringify(sampleData));
+        console.log("sample data cached");
         return sampleData;
     }
-}
-
-function dbConnect() { 
-    console.log(" dbConnect ");
-/*
-    // 1. Initialize the database connection
-    initDB();
-    console.log("Database Ready.");
-
-    // 2. Save the initial "table" of data
-    saveAllRecords(sampleData);
-    console.log("Sample data saved.");
-
-    // 3. Retrieve the saved data
-    const retrievedData = getAllRecords();
-    console.log("Retrieved Data:", retrievedData);
-    */
 }
 
 function saveDbData() {
@@ -61,13 +62,12 @@ function saveDbData() {
 }
 
 function initButtons() {
-  // Get the button element by its ID
-  const button = document.getElementById("setupDb");
+    console.log(" initButtons ");
+    // Get the button element by its ID
+    const button = document.getElementById("setupDb");
 
-  console.log(" initButtons ");
-
-  // Attach the event listener
-  button.addEventListener("click", dbConnect); 
+    // Attach the event listener
+    button.addEventListener("click", dbConnect); 
 }
 
 // Load data and populate the table on page load
