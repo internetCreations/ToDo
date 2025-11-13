@@ -56,13 +56,10 @@ function initButtons() {
   // Get the button element by its ID
   const button = document.getElementById("setupDb");
 
-  // Define the function to be called
-  function myFunction() {
-    alert("Button clicked!");
-  }
+  console.log(" initButtons ");
 
   // Attach the event listener
-  button.addEventListener("click", dbConnect); 
+  button.addEventListener("click", dbConnect()); 
 }
 
 // Load data and populate the table on page load
