@@ -38,8 +38,10 @@ function loadData() {
         return sampleData;
     }
 }
-/*
+
 function dbConnect() { 
+    console.log(" dbConnect ");
+/*
     // 1. Initialize the database connection
     initDB();
     console.log("Database Ready.");
@@ -51,8 +53,9 @@ function dbConnect() {
     // 3. Retrieve the saved data
     const retrievedData = getAllRecords();
     console.log("Retrieved Data:", retrievedData);
+    */
 }
-*/
+
 function saveDbData() {
 
 }
