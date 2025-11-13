@@ -19,6 +19,7 @@ function populateTable(data) {
             <td>${item.name}</td>
             <td>${item.status}</td>
             <td>${item.details}</td>
+            <td><input type="checkbox" ${item.completed ? "checked" : ""}></td>
         `;
         tableBody.appendChild(row);
     });
