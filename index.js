@@ -12,7 +12,7 @@ const sampleData = [
 function populateTable(data) {
     const tableBody = document.getElementById("table-body");
     tableBody.innerHTML = ""; // Clear existing rows
-    data.forEach(item, index => {
+    data.forEach((item, index ) => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${item.id}</td>
