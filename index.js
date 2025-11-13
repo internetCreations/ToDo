@@ -32,6 +32,7 @@ function populateTable(data) {
 
 // Function to handle checkbox changes
 function handleCheckboxChange(event) {
+    console.log( " handleCheckboxChange start");
     const checkbox = event.target;
     const index = checkbox.getAttribute("data-index");
     const data = loadData();
@@ -41,6 +42,7 @@ function handleCheckboxChange(event) {
 
     // Save the updated data back to localStorage
     localStorage.setItem("taskData", JSON.stringify(data));
+    console.log( " handleCheckboxChange end");
 }
 
 function loadData() {
