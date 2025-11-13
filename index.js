@@ -53,6 +53,10 @@ function dbConnect() {
     console.log("Retrieved Data:", retrievedData);
 }
 
+function saveDbData() {
+
+}
+
 function initButtons() {
   // Get the button element by its ID
   const button = document.getElementById("setupDb");
@@ -67,4 +71,3 @@ function initButtons() {
 const data = loadData();
 populateTable(data);
 initButtons();
-//dbConnect(); 
