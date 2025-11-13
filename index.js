@@ -67,7 +67,7 @@ function initButtons() {
   console.log(" initButtons ");
 
   // Attach the event listener
-  button.addEventListener("click", dbConnect()); 
+  //button.addEventListener("click", dbConnect()); 
 }
 
 // Load data and populate the table on page load
