@@ -38,7 +38,7 @@ function loadData() {
         return sampleData;
     }
 }
-
+/*
 function dbConnect() { 
     // 1. Initialize the database connection
     initDB();
@@ -52,7 +52,7 @@ function dbConnect() {
     const retrievedData = getAllRecords();
     console.log("Retrieved Data:", retrievedData);
 }
-
+*/
 function saveDbData() {
 
 }
