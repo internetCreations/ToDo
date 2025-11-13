@@ -3,9 +3,9 @@ import { initDB, saveAllRecords, getAllRecords } from './indexedDBManager.js';
 
 // Sample data set
 const sampleData = [
-    { id: 1, name: "task 1b", status: 'In-Progress', details: "Details 1a" },
-    { id: 2, name: "task 2", status: 'In-Progress', details: "Details 2" },
-    { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3" }
+    { id: 1, name: "task 1b", status: 'In-Progress', details: "Details 1a", completed: false },
+    { id: 2, name: "task 2", status: 'In-Progress', details: "Details 2", completed: false },
+    { id: 3, name: "task 3", status: 'In-Progress', details: "Details 3", completed: false }
 ];
 
 // Function to populate the table
