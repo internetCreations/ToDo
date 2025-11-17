@@ -19,7 +19,7 @@ function populateTable(data) {
             <td>${item.name}</td>
             <td>${item.status}</td>
             <td>${item.details}</td>
-            <td><input type="checkbox" class="completed-checkbox" data-index="${index}" ${item.completed ? "checked" : ""}></td>
+            <td><button id="delete-button" data-index="${index}">Delete</button></td>
         `;
         tableBody.appendChild(row);
     });
@@ -61,11 +61,12 @@ function loadData() {
 
 function initButtons() {
     console.log(" initButtons ");
-    // Get the button element by its ID
-    const button = document.getElementById("add-new-task");
+    document.getElementById("add-new-task").addEventListener("click", addNewTask); 
+    document.getElementById("delete-button").addEventListener("click", deleteTask);
+}
 
-    // Attach the event listener
-    button.addEventListener("click", addNewTask); 
+function deleteTask() {
+    alert("Delete task clicked");
 }
 
 function addNewTask() {
