@@ -31,7 +31,11 @@
             <label for="task-name">Name:</label>
             <input type="text" id="task-name" name="task-name" required>
             <label for="task-status">Status:</label>
-            <input type="number" id="task-status" name="task-status" required>
+            <select id="task-status-values" name="Status">
+                <option value="option1">Option 1 Display Text</option>
+                <option value="option2">Option 2 Display Text</option>
+                <option value="option3" selected>Option 3 Display Text (Selected by default)</option>
+            </select>
             <label for="task-details">Details:</label>
             <input type="text" id="task-details" name="task-details" required>
             <label for="task-completed">Completed:</label>
