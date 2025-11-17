@@ -72,6 +72,7 @@ function deleteTask() {
 
 function cleanCache() {
     alert('Clean Cache clicked');
+    localStorage.removeItem("taskData");
 }
 
 function addNewTask() {
