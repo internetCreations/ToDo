@@ -63,7 +63,7 @@ function initButtons() {
     console.log(" initButtons ");
     document.getElementById("add-new-task").addEventListener("click", addNewTask); 
     document.getElementById("delete-button").addEventListener("click", deleteTask);
-    document.getElementById("clean-cache").addEventListener("click", deleteTask);
+    document.getElementById("clean-cache").addEventListener("click", cleanCache);
 }
 
 function deleteTask() {
