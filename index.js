@@ -70,13 +70,14 @@ function deleteTask() {
 }
 
 function addNewTask() {
+    alert("Add new task clicked");
+
     // Create a new task object
     const newTask = {
         id: data.length + 1, // Generate a new ID based on the current data length
         name: document.getElementById("task-name").value,
         status: document.getElementById("task-status").value,
-        details: document.getElementById("task-details").value,
-        completed: document.getElementById("task-completed").checked
+        details: document.getElementById("task-details").value
     };
 
     alert(JSON.stringify(newTask));
