@@ -79,6 +79,22 @@ function addNewTask() {
     };
 
     alert(JSON.stringify(newTask));
+
+        // Add the new task to the data array
+        data.push(newTask);
+
+        // Save the updated data back to localStorage
+        localStorage.setItem("taskData", JSON.stringify(data));
+    
+        console.log("New task added to localStorage:", newTask);
+    
+        // Optionally, clear the form fields after adding the task
+        document.getElementById("add-task-form").reset();
+    
+        // Re-populate the table with the updated data
+        populateTable(data);
+    
+        console.log("addNewTask end");
 }
 
 // Load data and populate the table on page load
