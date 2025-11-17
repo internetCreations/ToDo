@@ -62,10 +62,15 @@ function loadData() {
 function initButtons() {
     console.log(" initButtons ");
     // Get the button element by its ID
-    const button = document.getElementById("setupDb");
+    const button = document.getElementById("add-new-task");
 
     // Attach the event listener
-    button.addEventListener("click", dbConnect); 
+    button.addEventListener("click", addNewTask); 
+}
+
+function addNewTask() {
+    alert("Add New Task button clicked!");
+
 }
 
 // Load data and populate the table on page load
