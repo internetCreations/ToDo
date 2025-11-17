@@ -69,8 +69,16 @@ function initButtons() {
 }
 
 function addNewTask() {
-    alert("Add New Task button clicked!");
+    // Create a new task object
+    const newTask = {
+        id: data.length + 1, // Generate a new ID based on the current data length
+        name: document.getElementById("task-name").value,
+        status: document.getElementById("task-status").value,
+        details: document.getElementById("task-details").value,
+        completed: document.getElementById("task-completed").checked
+    };
 
+    alert(JSON.stringify(newTask));
 }
 
 // Load data and populate the table on page load
