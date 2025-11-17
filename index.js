@@ -15,7 +15,6 @@ function populateTable(data) {
     data.forEach((item, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${item.id}</td>
             <td>${item.name}</td>
             <td>${item.status}</td>
             <td>${item.details}</td>
