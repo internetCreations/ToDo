@@ -17,6 +17,7 @@ function populateTable(data) {
         row.innerHTML = `
             <td>${item.name}</td>
             <td>${item.status}</td>
+            <td>${item.frequency}</td>
             <td>${item.details}</td>
             <td><button id="delete-button" data-index="${index}">Delete</button></td>
         `;
@@ -66,7 +67,7 @@ function initButtons() {
 }
 
 function deleteTask() {
-    alert("Delete task clicked");
+    console.log("Delete task clicked");
 }
 
 function cleanCache() {
@@ -108,5 +109,7 @@ function addNewTask() {
 console.log(" start init ");
 const data = loadData();
 populateTable(data);
-initButtons();
+document.addEventListener("DOMContentLoaded", () => {
+    initButtons();
+});
 console.log(" end init ");

@@ -7,13 +7,41 @@
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    
-    <h1 style="text-align: center;">Today's To Do's 4</h1>
+
+        <!-- Section to add a new row -->
+        <section>
+            <h2>Add a New Task</h2>
+            <form id="add-task-form">
+                <label for="task-name">Name:</label>
+                <input type="text" id="task-name" name="task-name" required>
+                <label id="task-status">Status:</label>
+                <select id="task-status-values" name="Status">
+                    <option value="option-not-started" selected >Not Started</option>
+                    <option value="option-in-progress">In Progress</option>
+                    <option value="option-completed">Completed</option>
+                </select>
+                <label id="task-frequency">Frequency:</label>
+                <select id="task-frequency-values" name="frequency">
+                    <option value="option-not-daily" selected >Daily</option>
+                    <option value="option-in-weekly">Weekly</option>
+                    <option value="option-monthly">Monthly</option>
+                    <option value="option-one-time">One Time</option>
+                </select>
+                <label for="task-details">Details:</label>
+                <input type="text" id="task-details" name="task-details" required>
+                <button type="submit" id='add-new-task'>Add Task</button>
+            </form>
+        </section>
+
+        <button id='clean-cache'>Clean Cache</button>
+
+    <h1 style="text-align: center;">Today's To Do's</h1>
     <table>
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Status</th>
+                <th>Frequency</th>
                 <th>Details</th>
                 <th>Delete</th>
             </tr>
@@ -23,24 +51,6 @@
         </tbody>
     </table>
 
-    <!-- Section to add a new row -->
-    <section>
-        <h2>Add a New Task</h2>
-        <form id="add-task-form">
-            <label for="task-name">Name:</label>
-            <input type="text" id="task-name" name="task-name" required>
-            <label id="task-status">Status:</label>
-            <select id="task-status-values" name="Status">
-                <option value="option-not-started" selected >Not Started</option>
-                <option value="option-in-progress">In Progress</option>
-                <option value="option-completed">Completed</option>
-            </select>
-            <label for="task-details">Details:</label>
-            <input type="text" id="task-details" name="task-details" required>
-            <button type="submit" id='add-new-task'>Add Task</button>
-        </form>
-    </section>
-    <button id='clean-cache'>Clean Cache</button>
     <script type="module" src="index.js"></script>
 </body>
 
